@@ -2,28 +2,27 @@
 ## based on a cohort of eutrofic and obese patients
 
 ## Dependencies
-library(googlesheets)   ## connection to google spreadsheets
-library(dplyr)          ## Data processing
-library(ggplot2)        ## Plotting
+library(tidyverse)
 library(VIM)            ## Variable imputation
 library(missForest)     ## imputation using random forest
 library(Hmisc)
 
-## loading obese chorot data from google spreadsheet
-obese <- gs_title('ObesidadHGMcompleto20191004') %>%
-              gs_read('BASE DE DATOS A')
+
+## Reading data
+obese <- read.table('../data/Data_obesidadHGM_de trabajo.xlsx - BASE DE DATOS A.tsv', 
+                    sep = '\t', header = TRUE,
+                    stringsAsFactors = FALSE)
+str(obese)
 
 ## Removing annoying non alpha numeric characters in names
 colnames(obese) <- gsub('[^[:alnum:]]', '', colnames(obese))
 
 ## obese data preprocessing
 ## removing empty spaces in col names
-names(obese) <- gsub(' ', '_', names(obese)) 
+names(obese) <- gsub(' ', '_', names(obese))
+names(obese) <- gsub('\\.', '_', names(obese)) 
 ## dropping non sense variables as ids
-obese.p <- select(obese, 
-                  LymphocytesCount:LogCD8TEMQ3HLADRCD38MedianPEDZL
-                 )   %>%
-        select_if(is.numeric)
+obese.p <- obese[, 3:ncol(obese)]  
 
 ###########################################################################
 ## Assessing the number of NAs in data
@@ -49,6 +48,11 @@ obese.filtered <- obese.p[, na_fracts < threshold]
 #############################################################################
 ## Assessing variable imputation
 
+patient_type <- obese.filtered$Tipodepaciente
+obese.filtered <- select(obese.filtered, 
+                         -Tipodepaciente,
+                         -Clave) %>%
+                  select_if(is.numeric)
 obese.m <- as.matrix(obese.filtered)
 
 ## Imputing data using random forest
@@ -68,6 +72,8 @@ write.table(obese_Hmisc,
             '../data/obesity_mean_imputed.tsv',
             row.names = FALSE,
             sep = '\t')
+
+
 
 
 
